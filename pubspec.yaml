@@ -1,0 +1,48 @@
+name: nearlink
+description: Nearlink - universal, end-to-end encrypted nearby sharing for all your devices.
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.6.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # State management
+  provider: ^6.1.2
+
+  # Cross-platform mDNS / DNS-SD discovery (Android, iOS, macOS, Windows, Linux)
+  nsd: ^4.0.0
+
+  # Pure-Dart crypto: Ed25519 identity, X25519 ECDH, HKDF, AES-GCM
+  cryptography: ^2.7.0
+
+  # Pairing UI
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^5.2.3
+
+  # Files + storage
+  file_picker: ^8.1.2
+  desktop_drop: ^0.6.0
+  open_filex: ^4.5.0
+  flutter_local_notifications: ^22.3.2
+  path_provider: ^2.1.4
+  shared_preferences: ^2.3.2
+  flutter_secure_storage: ^9.2.2
+
+  # Utilities
+  uuid: ^4.5.1
+  mime: ^1.0.6
+  intl: ^0.19.0
+  device_info_plus: ^10.1.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

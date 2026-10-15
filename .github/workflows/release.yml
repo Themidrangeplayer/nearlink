@@ -1,0 +1,158 @@
+name: Release builds
+
+# Builds Android, macOS, Windows and iOS, and attaches everything to a GitHub
+# release. Push a tag like v1.0.0 to trigger it, or run it by hand from the
+# Actions tab.
+#
+# Windows and iOS cannot be built from a Mac — Flutter does not cross-compile —
+# so this is the only practical way to produce all four from one repo.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  android:
+    name: Android
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      # Optional: set ANDROID_KEYSTORE_BASE64 (and the three passwords) as repo
+      # secrets for a properly signed build. Without them the APK is signed with
+      # the debug key, which still installs fine for a GitHub release.
+      - name: Restore the upload keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            mkdir -p android/keystore
+            printf '%s' "$KEYSTORE_BASE64" | base64 -d > android/keystore/upload-keystore.jks
+            printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=../keystore/upload-keystore.jks\n' \
+              "$STORE_PASSWORD" "$KEY_PASSWORD" "$KEY_ALIAS" > android/key.properties
+            echo "Using the upload keystore."
+          else
+            echo "No keystore secret set — signing with the debug key."
+          fi
+
+      - run: flutter build apk --release
+      - run: flutter build appbundle --release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nearlink-android
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/bundle/release/app-release.aab
+
+  macos:
+    name: macOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+      - run: flutter build macos --release
+
+      - name: Package the app
+        run: |
+          cd build/macos/Build/Products/Release
+          APP=$(ls -d *.app | head -1)
+          ditto -c -k --sequesterRsrc --keepParent "$APP" "${APP%.app}-macos.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nearlink-macos
+          path: build/macos/Build/Products/Release/*-macos.zip
+
+  windows:
+    name: Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+      - run: flutter build windows --release
+
+      - name: Package the build
+        run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath nearlink-windows.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nearlink-windows
+          path: nearlink-windows.zip
+
+  # Unsigned, because signing needs a paid Apple Developer account and a
+  # certificate in the repo. The .ipa can still be sideloaded with tools like
+  # Sideloadly or AltStore. Marked non-blocking so it never holds up a release.
+  ios:
+    name: iOS (unsigned)
+    runs-on: macos-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+      - run: flutter build ios --release --no-codesign
+
+      - name: Package as an ipa
+        run: |
+          cd build/ios/iphoneos
+          mkdir Payload
+          cp -R Runner.app Payload/
+          zip -qry nearlink-ios-unsigned.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nearlink-ios
+          path: build/ios/iphoneos/nearlink-ios-unsigned.ipa
+
+  release:
+    name: Attach to the release
+    needs: [android, macos, windows]
+    if: startsWith(github.ref, 'refs/tags/') && !cancelled()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          generate_release_notes: true
