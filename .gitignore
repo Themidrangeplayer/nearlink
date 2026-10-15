@@ -20,3 +20,5 @@ linux/flutter/ephemeral/
 windows/flutter/ephemeral/
 android/key.properties
 android/keystore/
+android/key.properties
+android/keystore/
