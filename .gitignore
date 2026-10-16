@@ -9,6 +9,7 @@ build/
 .idea/
 .vscode/
 *.iml
+.DS_Store
 
 # Platform build artefacts
 android/.gradle/
@@ -18,7 +19,5 @@ ios/.symlinks/
 macos/Pods/
 linux/flutter/ephemeral/
 windows/flutter/ephemeral/
-android/key.properties
-android/keystore/
 android/key.properties
 android/keystore/

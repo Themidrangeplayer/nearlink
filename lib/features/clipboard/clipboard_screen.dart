@@ -196,10 +196,10 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
           ),
           if (devices.isNotEmpty) ...[
             const SizedBox(height: 10),
-            Text(
+            const Text(
               'Auto-sync sends every copy automatically — turn it on under '
               'Security.',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
                 color: NearlinkColors.muted,
               ),

@@ -111,7 +111,7 @@ class PairingPayload {
   /// Parse a scanned QR string, tolerating a missing scheme prefix.
   static PairingPayload? tryDecode(String raw) {
     var value = raw.trim();
-    final prefix = '${NearlinkProtocol.qrScheme}://pair/';
+    const prefix = '${NearlinkProtocol.qrScheme}://pair/';
     if (value.startsWith(prefix)) {
       value = value.substring(prefix.length);
     }

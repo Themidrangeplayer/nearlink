@@ -133,7 +133,7 @@ class NearlinkClient {
     if (expectedFingerprint != null &&
         expectedFingerprint.isNotEmpty &&
         peerFingerprint != expectedFingerprint) {
-      throw HandshakeException(
+      throw const HandshakeException(
         'Peer fingerprint does not match the trusted value',
       );
     }
@@ -161,7 +161,7 @@ class NearlinkClient {
       remoteNonce: peerNonce,
     );
     if (expectedMac != json['mac']) {
-      throw HandshakeException('Session key confirmation failed');
+      throw const HandshakeException('Session key confirmation failed');
     }
 
     final session = NearlinkSession(

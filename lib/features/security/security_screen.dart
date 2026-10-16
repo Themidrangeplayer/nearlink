@@ -5,7 +5,6 @@ import '../../core/models/device.dart';
 import '../../core/utils/bytes.dart';
 import '../../state/app_state.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/format.dart';
 import '../../widgets/nearlink_card.dart';
 import '../../widgets/platform_icon.dart';
 

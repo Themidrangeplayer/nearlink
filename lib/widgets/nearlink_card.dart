@@ -24,12 +24,17 @@ class NearlinkCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: color ?? NearlinkColors.panel,
         borderRadius: BorderRadius.circular(20),
-        border: border ?? Border.all(color: const Color(0x0F19231D)),
+        border: border ?? Border.all(color: const Color(0x1219231D)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x0A19231D),
-            blurRadius: 20,
-            offset: Offset(0, 7),
+            color: Color(0x0519231D),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+          BoxShadow(
+            color: Color(0x0819231D),
+            blurRadius: 22,
+            offset: Offset(0, 8),
           ),
         ],
       ),
@@ -73,9 +78,9 @@ class SectionHeader extends StatelessWidget {
                 Text(
                   subtitle!,
                   style: const TextStyle(
-                    fontSize: 12,
+                    fontSize: 12.5,
                     color: NearlinkColors.muted,
-                    height: 1.4,
+                    height: 1.45,
                   ),
                 ),
               ],
@@ -88,22 +93,29 @@ class SectionHeader extends StatelessWidget {
   }
 }
 
-/// Small uppercase label used as an eyebrow over sections.
+/// Small uppercase badge used as an eyebrow over sections.
 class Eyebrow extends StatelessWidget {
-  const Eyebrow(this.text, {super.key, this.color = const Color(0xFF5D6F58)});
+  const Eyebrow(this.text, {super.key, this.color = const Color(0xFF006C4E)});
 
   final String text;
   final Color color;
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      text.toUpperCase(),
-      style: TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w800,
-        letterSpacing: 1.1,
-        color: color,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        text.toUpperCase(),
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.9,
+          color: color,
+        ),
       ),
     );
   }

@@ -233,8 +233,6 @@ void main() {
     final clientB = NearlinkClient(identity: idB);
     final clientC = NearlinkClient(identity: idC);
 
-    final aPeer = peerOf(idA, serverA);
-    final bPeer = peerOf(idB, serverB);
     final cPeer = peerOf(idC, serverC);
 
     const introId = 'intro-2';

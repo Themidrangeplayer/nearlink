@@ -1,5 +1,6 @@
 /// Device domain models: the platform a device runs on, a trusted (paired)
 /// device, and a peer discovered on the local network.
+library;
 
 enum DevicePlatform { android, ios, windows, macos, linux, unknown }
 

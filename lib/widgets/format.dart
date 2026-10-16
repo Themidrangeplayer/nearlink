@@ -1,4 +1,5 @@
 /// Small presentation helpers shared by the UI.
+library;
 
 String formatBytes(int bytes) {
   if (bytes <= 0) return '0 B';

@@ -49,6 +49,7 @@ void main() {
 
   _clipboardPayloadSuite();
   _messageSuite();
+  _chainSuite();
 
   test('formatBytes renders sensible units', () {
     expect(formatBytes(0), '0 B');
@@ -136,3 +137,28 @@ void _messageSuite() {
     expect(TransferItem.fromJson(item.toJson()).filePath, '/tmp/photo.jpg');
   });
 }
+
+void _chainSuite() {
+  test('file transfer with chain groupName round-trips correctly', () {
+    final item = TransferItem(
+      id: 'chain-1',
+      kind: TransferKind.file,
+      direction: TransferDirection.outgoing,
+      peerId: 'peer-a',
+      peerName: 'Pixel 8',
+      title: 'document.pdf',
+      bytes: 2048,
+      transferred: 2048,
+      timestamp: DateTime.now(),
+      status: TransferStatus.delivered,
+      filePath: '/tmp/document.pdf',
+      groupName: 'Chain of 3',
+    );
+    final restored = TransferItem.fromJson(item.toJson());
+    expect(restored.kind, TransferKind.file);
+    expect(restored.groupName, 'Chain of 3');
+    expect(restored.filePath, '/tmp/document.pdf');
+    expect(restored.peerName, 'Pixel 8');
+  });
+}
+

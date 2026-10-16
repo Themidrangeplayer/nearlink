@@ -49,6 +49,11 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>background-fetch</string>
+		<string>remote-notification</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
@@ -66,5 +71,13 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Nearlink finds your devices on this network to share files and clipboard text.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_nearlink._tcp</string>
+	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Nearlink scans pairing QR codes with the camera.</string>
 </dict>
 </plist>

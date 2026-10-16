@@ -99,6 +99,30 @@ class NearlinkTheme {
               : NearlinkColors.line,
         ),
       ),
+      chipTheme: ChipThemeData(
+        backgroundColor: Colors.white,
+        selectedColor: const Color(0xFFE5F3DB),
+        side: const BorderSide(color: NearlinkColors.line),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+        labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: NearlinkColors.ink),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        titleTextStyle: const TextStyle(
+          fontSize: 19,
+          fontWeight: FontWeight.w800,
+          letterSpacing: -0.5,
+          color: NearlinkColors.ink,
+        ),
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+      ),
     );
   }
 

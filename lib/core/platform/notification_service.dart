@@ -74,7 +74,7 @@ class NotificationService {
     if (!_ready) await init();
     if (!_ready) return;
     try {
-      final details = NotificationDetails(
+      const details = NotificationDetails(
         android: AndroidNotificationDetails(
           _channelId,
           _channelName,
@@ -83,8 +83,8 @@ class NotificationService {
           priority: Priority.high,
           icon: _androidIcon,
         ),
-        iOS: const DarwinNotificationDetails(),
-        macOS: const DarwinNotificationDetails(),
+        iOS: DarwinNotificationDetails(),
+        macOS: DarwinNotificationDetails(),
       );
       await _plugin.show(
         id: _nextId++,

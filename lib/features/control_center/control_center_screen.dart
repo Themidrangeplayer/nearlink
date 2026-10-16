@@ -4,6 +4,7 @@ import 'package:desktop_drop/desktop_drop.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/services.dart'; 
 
 import '../../core/models/device.dart';
 import '../../state/app_state.dart';
@@ -28,6 +29,7 @@ class ControlCenterScreen extends StatefulWidget {
 class _ControlCenterScreenState extends State<ControlCenterScreen> {
   final TextEditingController _clipboard = TextEditingController();
   bool _dragging = false;
+  bool _chainToAll = false;
 
   @override
   void dispose() {
@@ -222,13 +224,32 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> {
           ),
           const SizedBox(height: 19),
           if (devices.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
               child: Center(
-                child: Text(
-                  'No trusted devices yet — use Pair a nearby device to add one.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: NearlinkColors.muted),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: NearlinkColors.soft,
+                        borderRadius: BorderRadius.circular(13),
+                      ),
+                      child: const Icon(Icons.devices_outlined, size: 22, color: NearlinkColors.muted),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'No trusted devices yet',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 3),
+                    const Text(
+                      'Pair your devices to start sharing files and clipboard securely.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 12.5, color: NearlinkColors.muted),
+                    ),
+                  ],
                 ),
               ),
             )
@@ -267,16 +288,99 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> {
   }
 
   Widget _sendFile(AppState state) {
+    final connectedCount = state.onlineDevices.length;
+    final selected = state.selectedDevice;
+
     return NearlinkCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionHeader(
+          SectionHeader(
             title: 'Send a file',
-            subtitle: 'Drop anything here and choose a trusted device',
-            trailing: Eyebrow('Encrypted'),
+            subtitle: _chainToAll
+                ? 'Chain mode: sends sequentially to all $connectedCount connected device${connectedCount == 1 ? '' : 's'}'
+                : (selected == null
+                    ? 'Drop anything here and choose a trusted device'
+                    : 'Sending to ${selected.name} · choose a file or drag and drop'),
+            trailing: const Eyebrow('Encrypted'),
           ),
-          const SizedBox(height: 19),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              FilterChip(
+                selected: !_chainToAll,
+                onSelected: (_) => setState(() => _chainToAll = false),
+                avatar: Icon(
+                  Icons.phone_android,
+                  size: 16,
+                  color: !_chainToAll
+                      ? NearlinkColors.accent
+                      : NearlinkColors.muted,
+                ),
+                label: Text(
+                  selected != null
+                      ? 'To: ${selected.name}'
+                      : 'Selected device',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight:
+                        !_chainToAll ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                ),
+              ),
+              FilterChip(
+                selected: _chainToAll,
+                onSelected: (val) => setState(() => _chainToAll = val),
+                avatar: Icon(
+                  Icons.link,
+                  size: 16,
+                  color: _chainToAll
+                      ? NearlinkColors.accent
+                      : NearlinkColors.muted,
+                ),
+                label: Text(
+                  'Chain to all ($connectedCount connected)',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight:
+                        _chainToAll ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (_chainToAll && state.onlineDevices.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F7EE),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFD3E7CE)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.alt_route, size: 16, color: NearlinkColors.accent),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Chain order: ${state.onlineDevices.map((d) => d.name).join(' ➔ ')}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: NearlinkColors.accentDeep,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 14),
           DropTarget(
             onDragEntered: (_) => setState(() => _dragging = true),
             onDragExited: (_) => setState(() => _dragging = false),
@@ -289,7 +393,11 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> {
                         size: File(x.path).lengthSync(),
                       ))
                   .toList();
-              await state.sendFiles(files);
+              if (_chainToAll) {
+                await state.sendFilesChain(files);
+              } else {
+                await state.sendFiles(files);
+              }
             },
             child: Container(
               width: double.infinity,
@@ -317,21 +425,57 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> {
                       color: const Color(0xFFDEF1E3),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.upload_file,
-                        size: 19, color: NearlinkColors.accent),
+                    child: Icon(
+                      _chainToAll ? Icons.hub_outlined : Icons.upload_file,
+                      size: 19,
+                      color: NearlinkColors.accent,
+                    ),
                   ),
                   const SizedBox(height: 9),
-                  const Text('Drag and drop a file here',
-                      style: TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w700)),
+                  Text(
+                    _chainToAll
+                        ? 'Drag and drop to chain-send to all connected devices'
+                        : 'Drag and drop a file here',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                   const SizedBox(height: 5),
-                  const Text('or choose a file from this device',
-                      style: TextStyle(
-                          fontSize: 12, color: NearlinkColors.muted)),
+                  Text(
+                    _chainToAll
+                        ? 'Files will be sent sequentially to all connected devices'
+                        : 'or choose a file from this device',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: NearlinkColors.muted,
+                    ),
+                  ),
                   const SizedBox(height: 8),
-                  TextButton(
-                    onPressed: () => _pickFiles(state),
-                    child: const Text('Browse files'),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 6,
+                    alignment: WrapAlignment.center,
+                    children: [
+                      TextButton.icon(
+                        onPressed: () => _pickFiles(state, chain: _chainToAll),
+                        icon: Icon(
+                          _chainToAll ? Icons.link : Icons.folder_open,
+                          size: 16,
+                        ),
+                        label: Text(
+                          _chainToAll ? 'Browse & chain to all' : 'Browse files',
+                        ),
+                      ),
+                      if (!_chainToAll && connectedCount > 1)
+                        OutlinedButton.icon(
+                          onPressed: () => _pickFiles(state, chain: true),
+                          icon: const Icon(Icons.link, size: 15),
+                          label: Text('Chain to all ($connectedCount)'),
+                        ),
+                    ],
                   ),
                 ],
               ),
@@ -342,10 +486,14 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> {
     );
   }
 
-  Future<void> _pickFiles(AppState state) async {
+  Future<void> _pickFiles(AppState state, {bool chain = false}) async {
     final result = await FilePicker.platform.pickFiles(allowMultiple: true);
     if (result == null) return;
-    await state.sendFiles(result.files);
+    if (chain) {
+      await state.sendFilesChain(result.files);
+    } else {
+      await state.sendFiles(result.files);
+    }
   }
 
   Widget _clipboardCard(AppState state) {
@@ -367,7 +515,28 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> {
               hintText: 'Paste a note, link, or code snippet…',
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              TextButton.icon(
+                onPressed: () async {
+                  final data = await Clipboard.getData('text/plain');
+                  if (data?.text != null && data!.text!.isNotEmpty) {
+                    setState(() => _clipboard.text = data.text!);
+                  }
+                },
+                icon: const Icon(Icons.content_paste_go, size: 15),
+                label: const Text('Paste from clipboard'),
+              ),
+              const Spacer(),
+              if (_clipboard.text.isNotEmpty)
+                TextButton(
+                  onPressed: () => setState(() => _clipboard.clear()),
+                  child: const Text('Clear'),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
           Row(
             children: [
               Expanded(
@@ -378,7 +547,7 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> {
                         fontSize: 12, color: NearlinkColors.muted),
                     children: [
                       TextSpan(
-                        text: target?.name ?? 'no device',
+                        text: target?.name ?? 'no device selected',
                         style: const TextStyle(
                           color: NearlinkColors.ink,
                           fontWeight: FontWeight.w700,
@@ -388,12 +557,13 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> {
                   ),
                 ),
               ),
-              FilledButton(
+              FilledButton.icon(
                 onPressed: () async {
                   await state.sendClipboard(_clipboard.text);
                   _clipboard.clear();
                 },
-                child: const Text('Send clipboard'),
+                icon: const Icon(Icons.send, size: 15),
+                label: const Text('Send clipboard'),
               ),
             ],
           ),
@@ -412,14 +582,37 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> {
             title: 'Recent activity',
             subtitle: 'Always encrypted in transit',
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           if (items.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 22),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
               child: Center(
-                child: Text(
-                  'Nothing sent or received yet.',
-                  style: TextStyle(fontSize: 13, color: NearlinkColors.muted),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: NearlinkColors.soft,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.history_toggle_off,
+                        size: 20,
+                        color: NearlinkColors.muted,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'No recent activity',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 2),
+                    const Text(
+                      'Items you send or receive will appear here.',
+                      style: TextStyle(fontSize: 12, color: NearlinkColors.muted),
+                    ),
+                  ],
                 ),
               ),
             )

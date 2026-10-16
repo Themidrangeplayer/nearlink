@@ -77,6 +77,12 @@ class _PairingScreenState extends State<PairingScreen> {
     if (peer == null || !mounted) return;
     await context.read<AppState>().requestPairingWith(peer);
   }
+    void _close() {
+    if (_closing) return;
+    _closing = true;
+    if (mounted) Navigator.of(context).pop();
+  }
+
 
   Future<void> _scan() async {
     final result = await Navigator.of(context).push<PairingPayload>(
@@ -87,7 +93,7 @@ class _PairingScreenState extends State<PairingScreen> {
     final ok = await context.read<AppState>().pairWithPayload(result);
     if (!mounted) return;
     setState(() => _busy = false);
-    if (ok) Navigator.of(context).pop();
+    if (ok) _close();
   }
 
   Future<void> _manual() async {
@@ -106,7 +112,7 @@ class _PairingScreenState extends State<PairingScreen> {
         );
     if (!mounted) return;
     setState(() => _busy = false);
-    if (ok) Navigator.of(context).pop();
+    if (ok) _close();
   }
 
   @override

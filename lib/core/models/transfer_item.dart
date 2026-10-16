@@ -1,5 +1,6 @@
 /// A single item in the transfer activity list: either a file or a clipboard
 /// payload, moving in one direction between this device and a peer.
+library;
 
 enum TransferDirection { outgoing, incoming }
 

@@ -4,7 +4,6 @@ import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:path_provider/path_provider.dart';
@@ -679,7 +678,14 @@ class AppState extends ChangeNotifier
 
   // --- outgoing transfers ------------------------------------------------
 
-  Future<void> sendFiles(List<PlatformFile> files) async {
+  Future<void> sendFiles(
+    List<PlatformFile> files, {
+    bool chainToAll = false,
+  }) async {
+    if (chainToAll) {
+      await sendFilesChain(files);
+      return;
+    }
     final device = selectedDevice;
     if (device == null) {
       _emit('Choose a trusted device first');
@@ -738,6 +744,101 @@ class AppState extends ChangeNotifier
     }
     await _trust.touch(device.deviceId);
     _emit('${files.length} file${files.length == 1 ? '' : 's'} sent to ${device.name}');
+  }
+
+  /// Send files sequentially to all connected (online) trusted devices like a chain.
+  ///
+  /// If [targetDeviceIds] is provided, chains across those devices; otherwise
+  /// chains across all [onlineDevices] (or all trusted devices if none are online yet).
+  ///
+  /// Each device in the chain receives the files in sequence, with individual progress
+  /// tracking and notifications for each link in the chain.
+  Future<int> sendFilesChain(
+    List<PlatformFile> files, {
+    Iterable<String>? targetDeviceIds,
+  }) async {
+    final targets = targetDeviceIds != null
+        ? targetDeviceIds
+            .map((id) => _trust.byId(id))
+            .whereType<TrustedDevice>()
+            .toList()
+        : (onlineDevices.isNotEmpty ? onlineDevices : _trust.devices);
+
+    if (targets.isEmpty) {
+      _emit('No connected devices to chain to');
+      return 0;
+    }
+    final validFiles = files.where((f) => f.path != null).toList();
+    if (validFiles.isEmpty) return 0;
+
+    var deliveredCount = 0;
+    final totalTargets = targets.length;
+    var index = 0;
+    final chainLabel = 'Chain of $totalTargets';
+
+    for (final device in targets) {
+      index++;
+      NearlinkSession session;
+      try {
+        session = await _connect(device);
+      } catch (error) {
+        _emit('Chain ($index/$totalTargets): ${_reachError(device, error)}');
+        continue;
+      }
+
+      var anyFailed = false;
+      for (final file in validFiles) {
+        final path = file.path!;
+        final size = file.size;
+        final item = TransferItem(
+          id: _uuid.v4(),
+          kind: TransferKind.file,
+          direction: TransferDirection.outgoing,
+          peerId: device.deviceId,
+          peerName: device.name,
+          title: file.name,
+          bytes: size,
+          timestamp: DateTime.now(),
+          status: TransferStatus.active,
+          filePath: path,
+          groupName: chainLabel,
+        );
+        _addTransfer(item);
+        try {
+          await _client.sendFile(
+            session: session,
+            filePath: path,
+            fileName: file.name,
+            size: size,
+            mime: file.extension == null ? null : 'application/${file.extension}',
+            onProgress: (sent) => _updateTransfer(
+              item.id,
+              (t) => t.copyWith(transferred: sent, status: TransferStatus.active),
+            ),
+          );
+          _updateTransfer(
+            item.id,
+            (t) => t.copyWith(transferred: size, status: TransferStatus.delivered),
+          );
+        } catch (error) {
+          anyFailed = true;
+          _updateTransfer(
+            item.id,
+            (t) => t.copyWith(status: TransferStatus.failed, error: '$error'),
+          );
+          _emit('Chain: failed to send ${file.name} to ${device.name}');
+        }
+      }
+
+      await _trust.touch(device.deviceId);
+      if (!anyFailed) {
+        deliveredCount++;
+        _emit('Chain ($index/$totalTargets): sent to ${device.name}');
+      }
+    }
+
+    _emit('Chain complete: delivered to $deliveredCount of $totalTargets connected device${totalTargets == 1 ? '' : 's'}');
+    return deliveredCount;
   }
 
   /// Send to the currently selected device (the control-centre button).
@@ -1518,6 +1619,10 @@ class AppState extends ChangeNotifier
     _lifecycle = state;
     if (state == AppLifecycleState.resumed) {
       unawaited(_flushPendingClipboard());
+      unawaited(_syncBackgroundKeeper());
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      unawaited(_syncBackgroundKeeper());
     }
   }
 
