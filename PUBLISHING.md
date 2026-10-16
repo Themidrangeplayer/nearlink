@@ -72,8 +72,8 @@ git push -u origin main
 Tag a commit and push the tag:
 
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.0.1
+git push origin v1.0.1
 ```
 
 That triggers `.github/workflows/release.yml`, which builds all four platforms
