@@ -8,7 +8,6 @@ plugins {
 android {
     namespace = "com.example.nearlink"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
 
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
