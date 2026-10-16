@@ -1,4 +1,4 @@
-# Nearlink — Flutter
+# Nearlink
 
 A universal, end-to-end encrypted space for the devices you trust. This is the
 real Flutter implementation of the Nearlink prototype: nearby discovery,
@@ -6,9 +6,6 @@ account-free secure pairing, a trusted-device panel, file and clipboard
 transfer, and transfer activity — on Android, iOS, Windows, macOS and Linux
 from one codebase.
 
-## This project replaces
-> every one of its simulated behaviours with working code: real mDNS discovery,
-> real key exchange, real encrypted transfer, real persistence.
 
 ---
 
